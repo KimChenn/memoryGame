@@ -5,6 +5,26 @@ import time
 # Initialize Pygame and mixer
 pygame.init()
 pygame.mixer.init()
+stage_index = 0
+def initialize_game():
+    global cards, selected_cards, start_time, cards_data, game_over, current_turn, player_scores, time_limit, time_attack_mode, stage_duration, stage_index
+    cards = []
+    selected_cards = []
+    game_over = False
+    current_turn = 1
+    player_scores = [0, 0]
+    start_time = time.time()
+    time_limit = stage_duration[stage_index]
+    random.shuffle(cards_data)
+    for i, card_data in enumerate(cards_data):
+        x = (i % cards_per_row) * (card_width + card_gap) + (screen_width - (cards_per_row * (card_width + card_gap) - card_gap)) / 2
+        y = (i // cards_per_row) * (card_height + card_gap) + card_gap + 50
+        card = card_data.copy()
+        card['rect'] = pygame.Rect(x, y, card_width, card_height)
+        card['revealed'] = False
+        cards.append(card)
+    if time_attack_mode:
+        start_time = time.time()
 
 def flip_card_animation(card, revealing):
     original_rect = card['rect'].copy()
@@ -26,27 +46,6 @@ def flip_card_animation(card, revealing):
         pygame.time.wait(16)
     
     card['rect'] = original_rect
-
-def initialize_game():
-    global cards, selected_cards, start_time, cards_data, game_over, current_turn, player_scores, time_limit, time_attack_mode, stage_duration, stage_index
-    cards = []
-    selected_cards = []
-    game_over = False
-    current_turn = 1
-    player_scores = [0, 0]
-    start_time = time.time()
-    stage_index = 0
-    time_limit = stage_duration[stage_index]
-    random.shuffle(cards_data)
-    for i, card_data in enumerate(cards_data):
-        x = (i % cards_per_row) * (card_width + card_gap) + (screen_width - (cards_per_row * (card_width + card_gap) - card_gap)) / 2
-        y = (i // cards_per_row) * (card_height + card_gap) + card_gap + 50
-        card = card_data.copy()
-        card['rect'] = pygame.Rect(x, y, card_width, card_height)
-        card['revealed'] = False
-        cards.append(card)
-    if time_attack_mode:
-        start_time = time.time()
 
 def draw_button(text, button_rect, text_color, button_color):
     pygame.draw.rect(screen, button_color, button_rect)
@@ -89,7 +88,7 @@ card_height = 120
 card_gap = 20
 player_mode = 0
 time_attack_mode = False
-stage_duration = [60, 50, 30, 20, 10]  # Duration for each stage in seconds
+stage_duration = [60, 50, 40, 30, 20, 10]  # Duration for each stage in seconds
 cards_data = [{'color': [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255), (0, 255, 255), (255, 165, 0), (128, 0, 128)][i // 2], 'id': i // 2} for i in range(num_pairs * 2)]
 
 reset_button = pygame.Rect(650, 10, 140, 40)
@@ -113,7 +112,12 @@ while running:
                     # This resets the game for any mode when "Play Again" is clicked.
                     initialize_game()
                     if time_attack_mode:
-                        time_limit = stage_duration[stage_index]  # Ensure time attack mode starts with the default time limit
+                        if 1 < remaining_time:
+                            stage_index += 1
+                            time_limit = stage_duration[stage_index]  # Ensure time attack mode starts with the default time limit
+                        else:
+                            stage_index = 0
+                            time_limit = stage_duration[stage_index]
             elif player_mode == 0:
                 if one_player_button.collidepoint(event.pos):
                     player_mode = 1
@@ -130,7 +134,7 @@ while running:
             elif reset_button.collidepoint(event.pos):
                 initialize_game()
                 if time_attack_mode:
-                    time_limit = stage_duration[stage_index]  # Reset to the current stage duration for Time Attack mode
+                    time_limit = stage_duration[0]  # Reset to the current stage duration for Time Attack mode
             elif len(selected_cards) < 2 and not game_over:
                 for card in cards:
                     if card['rect'].collidepoint(event.pos) and not card['revealed']:
@@ -184,7 +188,7 @@ while running:
                 screen.blit(message, (screen_width // 2 - message.get_width() // 2, screen_height // 2 - 40))
                 draw_button("Next Stage", play_again_button, white, green)
         elif game_over and time_attack_mode:
-            game_over_message = f"Time's up! You did not succeed. Try again for {stage_duration[stage_index]} seconds."
+            game_over_message = f"Time's up! You did not succeed. Try again for {stage_duration[0]} seconds."
             message = font.render(game_over_message, True, red)
             screen.blit(message, (screen_width // 2 - message.get_width() // 2, screen_height // 2 - 40))
             draw_button("Try Again", play_again_button, white, red)
