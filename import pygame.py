@@ -6,6 +6,7 @@ import time
 pygame.init()
 pygame.mixer.init()
 stage_index = 0
+
 def initialize_game():
     global cards, selected_cards, start_time, cards_data, game_over, current_turn, player_scores, time_limit, time_attack_mode, stage_duration, stage_index
     cards = []
@@ -102,6 +103,10 @@ initialize_game()
 clock = pygame.time.Clock()
 running = True
 
+def display_current_player_turn():
+    player_turn_text = font.render(f"Player {current_turn}'s Turn", True, black)
+    screen.blit(player_turn_text, (screen_width // 2 - player_turn_text.get_width() // 2, 10))
+
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -167,6 +172,8 @@ while running:
     if player_mode == 0:
         player_mode_buttons()
     else:
+        if player_mode == 2:
+            display_current_player_turn()  # Display current player's turn
         for card in cards:
             if card['revealed']:
                 pygame.draw.rect(screen, card['color'], card['rect'])
@@ -187,6 +194,13 @@ while running:
                 message = font.render(game_over_message, True, green)
                 screen.blit(message, (screen_width // 2 - message.get_width() // 2, screen_height // 2 - 40))
                 draw_button("Next Stage", play_again_button, white, green)
+            else:
+                if player_mode == 2:
+                    announce_winner()
+                else:
+                    message = font.render("Well done!", True, green)
+                    screen.blit(message, (screen_width // 2 - message.get_width() // 2, screen_height // 2 - 20))
+                draw_button("Play again", play_again_button, white, red)
         elif game_over and time_attack_mode:
             game_over_message = f"Time's up! You did not succeed. Try again for {stage_duration[0]} seconds."
             message = font.render(game_over_message, True, red)
@@ -199,9 +213,13 @@ while running:
                 message = font.render(f"Time's Up! Try again for {stage_duration[stage_index]} seconds.", True, red)
                 screen.blit(message, (screen_width // 2 - message.get_width() // 2, screen_height // 2 - 40))
                 draw_button("Try Again", play_again_button, white, red)
-            else:
+            elif time_attack_mode:
                 remaining_time = max(0, time_limit - elapsed_time)
                 minutes, seconds = divmod(int(remaining_time), 60)
+                timer_text = font.render(f"Time Left: {minutes:02d}:{seconds:02d}", True, black)
+                screen.blit(timer_text, (10, 10))
+            else:
+                minutes, seconds = divmod(int(elapsed_time), 60)
                 timer_text = font.render(f"Time Left: {minutes:02d}:{seconds:02d}", True, black)
                 screen.blit(timer_text, (10, 10))
             draw_button("Reset", reset_button, white, red)
